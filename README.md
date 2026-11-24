@@ -5,8 +5,7 @@ A modern, responsive, full-featured digital livestock marketplace where users ca
 ---
 
 ## 🌐 Live Application URL
-- **Production / Preview Live URL:** [https://ais-pre-btmvqlarzkdeznqufeldmj-603458206596.asia-east1.run.app](https://ais-pre-btmvqlarzkdeznqufeldmj-603458206596.asia-east1.run.app)
-- **Development URL:** [https://ais-dev-btmvqlarzkdeznqufeldmj-603458206596.asia-east1.run.app](https://ais-dev-btmvqlarzkdeznqufeldmj-603458206596.asia-east1.run.app)
+
 
 ---
 
