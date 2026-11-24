@@ -1,0 +1,6 @@
+{
+  "name": "QurbaniHaat - Modern Livestock Marketplace",
+  "description": "A modern livestock marketplace to explore cows, bulls, and goats for Qurbani, check Islamic sacrificial guidelines, and place verified animal bookings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
