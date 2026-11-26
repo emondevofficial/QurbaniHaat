@@ -3,21 +3,53 @@ const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY);
 const databaseUrl = process.env.DATABASE_URL;
 const isLibSqlDatabase = Boolean(databaseUrl && /^(libsql|https):\/\//i.test(databaseUrl));
 
+function getConfiguredOrigin(value: string): string | null {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function getVercelOrigin(value: string | undefined): string | null {
+  if (!value) return null;
+
+  try {
+    const url = value.includes("://") ? value : `https://${value}`;
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
 export function getAuthBaseUrl(): string | null {
   const configuredUrl = process.env.APP_URL?.trim();
-  if (configuredUrl) {
-    try {
-      return new URL(configuredUrl).origin;
-    } catch {
-      return null;
+  const configuredOrigin = configuredUrl ? getConfiguredOrigin(configuredUrl) : null;
+  const isVercelProduction = Boolean(process.env.VERCEL) && (
+    process.env.VERCEL_ENV === "production" ||
+    (!process.env.VERCEL_ENV && isProduction)
+  );
+
+  if (isVercelProduction) {
+    const productionOrigin = getVercelOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+    if (productionOrigin) {
+      if (configuredUrl && configuredOrigin !== productionOrigin) {
+        console.warn(
+          "APP_URL does not match Vercel's production origin; using the Vercel production origin for authentication."
+        );
+      }
+      return productionOrigin;
     }
+
+    return configuredOrigin;
   }
 
   if (process.env.VERCEL) {
-    const vercelHost = isProduction || process.env.VERCEL_ENV === "production"
-      ? process.env.VERCEL_PROJECT_PRODUCTION_URL
-      : process.env.VERCEL_URL;
-    return vercelHost ? new URL(`https://${vercelHost}`).origin : null;
+    return configuredOrigin || getVercelOrigin(process.env.VERCEL_URL);
+  }
+
+  if (configuredUrl) {
+    return configuredOrigin;
   }
 
   if (isProduction || isServerless) {
