@@ -1,7 +1,7 @@
 import express from "express";
 import path from "node:path";
 import { toNodeHandler } from "better-auth/node";
-import { auth, googleOAuthConfigured } from "./auth";
+import { auth, ensureAuthDatabase, googleOAuthConfigured } from "./auth";
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -31,6 +31,13 @@ app.use((error: unknown, _req: express.Request, res: express.Response, next: exp
   res.status(500).json({ error: "An unexpected server error occurred." });
 });
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`QurbaniHaat server listening on port ${port}`);
-});
+ensureAuthDatabase()
+  .then(() => {
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`QurbaniHaat server listening on port ${port}`);
+    });
+  })
+  .catch((error: unknown) => {
+    console.error("Authentication database initialization failed:", error);
+    process.exitCode = 1;
+  });

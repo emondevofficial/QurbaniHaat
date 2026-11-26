@@ -3,7 +3,8 @@
  * Sourced safely from Vite's import.meta.env
  */
 
-export const APP_TITLE: string = (import.meta.env.VITE_APP_TITLE || 'My Marketplace').replace(/^["']|["']$/g, '').trim();
+const configuredAppTitle = (import.meta.env.VITE_APP_TITLE || 'Qurbani Haat').replace(/^["']|["']$/g, '').trim();
+export const APP_TITLE: string = configuredAppTitle === 'QurbaniHaat' ? 'Qurbani Haat' : configuredAppTitle;
 export const MARKETPLACE_CURRENCY: string = (import.meta.env.VITE_MARKETPLACE_CURRENCY || 'BDT').replace(/^["']|["']$/g, '').trim();
 
 /**

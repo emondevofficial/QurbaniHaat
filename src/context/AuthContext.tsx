@@ -49,7 +49,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cache: 'no-store',
       });
       if (!configResponse.ok) {
-        return { success: false, error: 'The authentication service is unavailable. Please try again.' };
+        return {
+          success: false,
+          error: configResponse.status === 404
+            ? 'The authentication endpoint is not deployed for this site. Deploy the /api/auth serverless function and try again.'
+            : 'The authentication service is unavailable. Please try again.',
+        };
       }
 
       const config = await configResponse.json() as { googleEnabled?: boolean };

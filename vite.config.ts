@@ -14,7 +14,8 @@ export default defineConfig(() => {
           server.middlewares.use(async (req, res, next) => {
             if (req.url?.split('?')[0] === '/api/auth/config') {
               try {
-                const { googleOAuthConfigured } = await import('./src/server/auth.ts');
+                const { ensureAuthDatabase, googleOAuthConfigured } = await import('./src/server/auth.ts');
+                await ensureAuthDatabase();
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
                 res.setHeader('Cache-Control', 'no-store');
@@ -28,7 +29,8 @@ export default defineConfig(() => {
             if (req.url && (req.url === '/api/auth' || req.url.startsWith('/api/auth/') || req.url.startsWith('/api/auth?'))) {
               try {
                 const { toNodeHandler } = await import('better-auth/node');
-                const { auth } = await import('./src/server/auth.ts');
+                const { auth, ensureAuthDatabase } = await import('./src/server/auth.ts');
+                await ensureAuthDatabase();
                 return toNodeHandler(auth)(req, res);
               } catch (err) {
                 console.error('Better Auth error in middleware:', err);

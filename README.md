@@ -5,8 +5,8 @@ A modern, responsive, full-featured digital livestock marketplace where users ca
 ---
 
 ## 🌐 Live Application URL
-- **Production / Preview Live URL:** [https://ais-pre-btmvqlarzkdeznqufeldmj-603458206596.asia-east1.run.app](https://ais-pre-btmvqlarzkdeznqufeldmj-603458206596.asia-east1.run.app)
-- **Development URL:** [https://ais-dev-btmvqlarzkdeznqufeldmj-603458206596.asia-east1.run.app](https://ais-dev-btmvqlarzkdeznqufeldmj-603458206596.asia-east1.run.app)
+- **Production Live URL:** [https://qurbani-haat-rosy.vercel.app](https://qurbani-haat-rosy.vercel.app)
+- **Development URL:** `http://localhost:3000`
 
 ---
 
@@ -134,13 +134,16 @@ Contains rich, realistic cattle and livestock records with:
 
 ## 🔐 Google OAuth Setup
 
-Authentication uses Better Auth with the existing SQLite database and requires Node.js 22.5 or newer. OAuth credentials and session secrets are server-only; do not prefix them with `VITE_`.
+Authentication uses Better Auth with SQLite for local development and persistent Turso/libSQL storage in serverless production. It requires Node.js 22.5 or newer. OAuth credentials, database tokens, and session secrets are server-only; do not prefix them with `VITE_`.
 
-1. Copy `.env.example` to `.env` and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `AUTH_SECRET`. Generate a secret with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Development shows a clear setup error until Google credentials are configured; production refuses to start without them.
-2. In Google Cloud Console, configure the OAuth consent screen and add the following authorized JavaScript origin and redirect URI:
+1. Copy `.env.example` to `.env` for local development and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `AUTH_SECRET`. Generate a secret with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Run the app with `npm run dev`.
+2. In Google Cloud Console, configure the OAuth consent screen and add these authorized JavaScript origins and redirect URIs:
    - Development origin: `http://localhost:3000`
    - Development redirect URI: `http://localhost:3000/api/auth/callback/google`
-3. Run `npm run dev`. In production, set `APP_URL` to the canonical HTTPS origin, configure that origin and `${APP_URL}/api/auth/callback/google` in Google Cloud Console, then start with `npm run build` and `npm start`.
-4. The default database is `./auth.sqlite`. Production startup requires an explicit `DATABASE_URL` pointing to persistent SQLite storage; do not use an ephemeral container filesystem. With SQLite, run a single app instance unless the mounted storage provides SQLite-safe locking. For horizontal scaling, migrate to a shared database adapter before enabling multiple instances. If the deployment adds forwarded client-IP headers, set `AUTH_TRUSTED_PROXIES` only to the actual trusted proxy IP/CIDR ranges.
+   - Production origin: `https://qurbani-haat-rosy.vercel.app`
+   - Production redirect URI: `https://qurbani-haat-rosy.vercel.app/api/auth/callback/google`
+3. Create a persistent Turso/libSQL database. Add these server-side environment variables to Vercel for **Production** (and Preview if needed): `APP_URL` (the canonical HTTPS deployment origin), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_SECRET` (at least 32 characters), `DATABASE_URL` (the database's `libsql://` URL), and `DATABASE_AUTH_TOKEN`. Do not expose these values as `VITE_` variables. Set `VITE_APP_TITLE=Qurbani Haat` only if you want to override the built-in brand.
+4. Vercel automatically deploys the Better Auth handler from `api/auth/[...all].ts` at `/api/auth/*`; keep the frontend and API on the same origin. The production database schema is migrated on the first API request (or run `npm run auth:migrate` manually with the production database variables before deployment). Vercel should build the frontend with `npm run build`.
+5. Netlify is also supported by the existing `netlify.toml` and `netlify/functions/auth.ts`; configure the same server-side variables there and use the site’s own canonical `APP_URL` and matching Google callback URI. The standalone Express server can be used with `npm start` and the same environment variables.
 
-The deployed application must serve the frontend and `/api/auth/*` from the same origin. Better Auth manages OAuth state, account linking for verified Google emails, and secure HTTP-only session cookies; production cookies use the `Secure` attribute. The OAuth callback path is `/api/auth/callback/google`.
+Better Auth manages OAuth state, synchronizes existing Google identities, and uses secure HTTP-only session cookies; production cookies use the `Secure` attribute. If the Google client variables are missing, `/api/auth/config` reports Google sign-in as unconfigured so the UI can show a specific setup message instead of a generic service error.
