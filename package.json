@@ -19,7 +19,6 @@
     "@google/genai": "^2.4.0",
     "@libsql/client": "^0.18.0",
     "@libsql/kysely-libsql": "^0.4.1",
-    "@netlify/functions": "^6.1.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "animate.css": "^4.1.1",
