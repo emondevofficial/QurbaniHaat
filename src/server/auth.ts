@@ -9,6 +9,12 @@ import { getMigrations } from "better-auth/db/migration";
 import { createClient } from "@libsql/client";
 import { LibsqlDialect } from "@libsql/kysely-libsql";
 import { Kysely } from "kysely";
+import { getAuthConfigurationError, googleOAuthConfigured } from "./auth-environment";
+
+const authConfigurationError = getAuthConfigurationError();
+if (authConfigurationError) {
+  throw new Error(authConfigurationError);
+}
 
 const isProduction = process.env.NODE_ENV === "production";
 const port = Number(process.env.PORT || 3000);
@@ -18,26 +24,6 @@ const databaseUrl = process.env.DATABASE_URL;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const isLibSqlDatabase = Boolean(databaseUrl && /^(libsql|https):\/\//i.test(databaseUrl));
-
-if (isProduction && (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32)) {
-  throw new Error("AUTH_SECRET must be configured with at least 32 characters in production.");
-}
-
-if (isProduction && (!configuredAppUrl || new URL(configuredAppUrl).protocol !== "https:")) {
-  throw new Error("APP_URL must be the canonical HTTPS origin in production.");
-}
-
-if (isProduction && !databaseUrl) {
-  throw new Error("DATABASE_URL must point to persistent storage in production.");
-}
-
-if (process.env.NETLIFY && !isLibSqlDatabase) {
-  throw new Error("Netlify Functions require a persistent libSQL DATABASE_URL.");
-}
-
-if (isLibSqlDatabase && !process.env.DATABASE_AUTH_TOKEN) {
-  throw new Error("DATABASE_AUTH_TOKEN is required for a remote libSQL database.");
-}
 
 const configuredDatabaseUrl = databaseUrl || "./auth.sqlite";
 const databaseClient = isLibSqlDatabase
@@ -139,8 +125,6 @@ const trustedProxyRanges = (process.env.AUTH_TRUSTED_PROXIES || "")
   .map((range) => range.trim())
   .filter(Boolean);
 
-export const googleOAuthConfigured = Boolean(googleClientId && googleClientSecret);
-
 export const auth = betterAuth({
   database,
   baseURL: appUrl,
@@ -225,4 +209,5 @@ export async function ensureAuthDatabase(): Promise<void> {
   await migrations;
 }
 
+export { googleOAuthConfigured };
 export { localDb as db };
