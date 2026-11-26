@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Local authentication databases may contain user and session records.
+auth.db
+auth.sqlite
+*.sqlite

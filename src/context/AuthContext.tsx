@@ -62,11 +62,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? 'The authentication endpoint is not deployed for this site. Deploy the /api/auth serverless function and try again.'
             : serverError || (configResponse.status === 503
               ? 'Authentication is not configured on the server. Check the deployment environment variables.'
-              : 'The authentication service is unavailable. Please try again.'),
+              : `The authentication service is unavailable (HTTP ${configResponse.status}). Please try again.`),
         };
       }
 
-      const config = await configResponse.json() as { googleEnabled?: boolean };
+      let config: { googleEnabled?: boolean };
+      try {
+        config = await configResponse.json() as { googleEnabled?: boolean };
+      } catch {
+        return {
+          success: false,
+          error: 'The authentication service returned an invalid response. Please try again.',
+        };
+      }
       if (!config.googleEnabled) {
         return {
           success: false,
@@ -87,9 +95,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.error) {
+        const status = response.error.status ? ` (HTTP ${response.error.status})` : '';
+        const message = response.error.message;
         return {
           success: false,
-          error: response.error.message || 'Google sign-in could not be started. Please try again.',
+          error: !message || message.toLowerCase() === 'failed to fetch'
+            ? `Could not reach the authentication server${status}. Check your connection and try again.`
+            : `${message}${status}`,
         };
       }
 

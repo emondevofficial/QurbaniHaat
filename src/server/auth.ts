@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { betterAuth } from "better-auth";
@@ -9,7 +8,11 @@ import { getMigrations } from "better-auth/db/migration";
 import { createClient } from "@libsql/client";
 import { LibsqlDialect } from "@libsql/kysely-libsql";
 import { Kysely } from "kysely";
-import { getAuthConfigurationError, googleOAuthConfigured } from "./auth-environment";
+import {
+  getAuthBaseUrl,
+  getAuthConfigurationError,
+  googleOAuthConfigured,
+} from "./auth-environment.js";
 
 const authConfigurationError = getAuthConfigurationError();
 if (authConfigurationError) {
@@ -18,8 +21,10 @@ if (authConfigurationError) {
 
 const isProduction = process.env.NODE_ENV === "production";
 const port = Number(process.env.PORT || 3000);
-const configuredAppUrl = process.env.APP_URL;
-const appUrl = new URL(configuredAppUrl || `http://localhost:${port}`).origin;
+const appUrl = getAuthBaseUrl();
+if (!appUrl) {
+  throw new Error("APP_URL must be configured to the canonical application origin.");
+}
 const databaseUrl = process.env.DATABASE_URL;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -40,7 +45,13 @@ const localDb = databaseClient
         : configuredDatabaseUrl.replace(/^file:/i, "");
       const dbPath = path.resolve(process.cwd(), configuredDatabasePath);
       mkdirSync(path.dirname(dbPath), { recursive: true });
-      return new DatabaseSync(dbPath);
+      const sqlite = process.getBuiltinModule("node:sqlite");
+      if (!sqlite) {
+        throw new Error(
+          "node:sqlite is unavailable in this runtime. Use Node.js >=22.5 or set DATABASE_URL to a libsql:// URL."
+        );
+      }
+      return new sqlite.DatabaseSync(dbPath);
     })();
 
 if (localDb) {
@@ -116,6 +127,9 @@ const database = databaseClient
   : localDb!;
 
 const trustedOrigins = new Set([appUrl]);
+for (const vercelHost of [process.env.VERCEL_PROJECT_PRODUCTION_URL, process.env.VERCEL_URL]) {
+  if (vercelHost) trustedOrigins.add(`https://${vercelHost}`);
+}
 if (!isProduction) {
   trustedOrigins.add(`http://localhost:${port}`);
   trustedOrigins.add(`http://127.0.0.1:${port}`);
@@ -206,7 +220,13 @@ export async function ensureAuthDatabase(): Promise<void> {
       `);
     })();
   }
-  await migrations;
+  try {
+    await migrations;
+  } catch (error) {
+    migrations = undefined;
+    console.error("Authentication database initialization failed:", error);
+    throw error;
+  }
 }
 
 export { googleOAuthConfigured };
